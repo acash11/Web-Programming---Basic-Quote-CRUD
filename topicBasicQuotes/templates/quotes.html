@@ -1,0 +1,46 @@
+<html>
+    <body>
+        <h1>Quotes</h1>
+        <hr>
+        <form action="/add" method="POST">
+            <table>
+                <th>Add Quote:</th>
+                <tr>
+                    <td><label for="text">text</label></td>
+                    
+                    <td><input type="text" id="text" name="text"/></td>
+                    
+                </tr>
+                <tr>
+                    <td><label for="author">author</label></td>
+                    <td><input type="text" id="author" name="author"/></td>
+                </tr>
+                    
+            </table>
+
+            <button type="submit">Submit</button>
+            
+        </form>
+        <table>
+            {% for item in data %}
+            <tr>
+                <td>
+                    {{ item["text"] }}
+                </td>
+                <td>
+                    <em>--</em>
+                    <em>{{ item["author"] }}</em>
+                </td>
+                <td>
+                    <a href="/delete/{{ item['_id'] }}">[Delete Quote]</a>
+                </td>
+                <td>
+
+                    <a href="/edit/{{ item['_id'] }}">[Edit Quote]</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+    </body>
+</html>

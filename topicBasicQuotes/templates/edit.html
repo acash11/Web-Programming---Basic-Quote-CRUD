@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+    
+    <form action="/edit/{{ data['_id'] }}" method="POST">
+        <table>
+            <tr>
+                <td><textarea rows="4" cols="50" name="author" id="author">{{ data["author"] }}</textarea></td>
+            </tr>
+            <tr>
+                <td><textarea rows="4" cols="50" name="text" id="text">{{ data["text"] }}</textarea></td>
+            </tr>
+            <tr>
+            <td><button type="submit">Submit</button></td>
+            </tr>
+        </table>
+    </form>
+</html>
