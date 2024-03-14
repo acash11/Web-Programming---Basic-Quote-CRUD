@@ -41,7 +41,7 @@ def get_delete(id=None):
 def post_add():
     # open the quotes collection
     quotes_collection = quotes_db.quotes_collection
-    # delete the item
+
     text = request.form.get("text")
     text = text.replace('<', '').replace('>', '')
     author = request.form.get("author")
