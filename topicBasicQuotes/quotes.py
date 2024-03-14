@@ -14,10 +14,6 @@ quotes_db = client.quotes_db
 @app.route("/", methods=["GET"])
 @app.route("/quotes", methods=["GET"])
 def get_quotes():
-    # data = [
-    #     {"text": "I'm hungry. When's lunch?", "author": "Dorothy"},
-    #     {"text": "You threw that ball. You go get it.", "author": "Suzy"},
-    # ]
     # open the quotes collection
     quotes_collection = quotes_db.quotes_collection
     # load the data
@@ -47,6 +43,7 @@ def post_add():
     quotes_collection = quotes_db.quotes_collection
     # delete the item
     text = request.form.get("text")
+    text = text.replace('<', '').replace('>', '')
     author = request.form.get("author")
     entry = {"text":text, "author":author}
     quotes_collection.insert_one(entry)
@@ -57,7 +54,6 @@ def post_add():
 def get_edit(id=None):
     # open the quotes collection
     quotes_collection = quotes_db.quotes_collection
-    # delete the item
     data = (list(quotes_collection.find({"_id":ObjectId(id)})))[0] 
     print("Editing Quote:", data)
     return render_template("edit.html", data=data)
@@ -66,8 +62,8 @@ def get_edit(id=None):
 def post_edit(id=None):
     # open the quotes collection
     quotes_collection = quotes_db.quotes_collection
-
     text = request.form.get("text")
+    text = text.replace('<', '').replace('>', '')
     author = request.form.get("author")
     #print(id)
     entry = {"text":text, "author":author}
