@@ -2,7 +2,7 @@
 Uses Flask, MongitaDB, Bootstrap, HTML, and CSS for a basic create read update delete application with sessions and hashed+salted passwords
 
 main quotes page: 
-The ![quote_page](https://github.com/acash11/Web-Programming-Basic-Quote-CRUD/assets/150085335/ddf8be5c-9f39-404a-bc9b-5c2ffa4c7333)
+![quote_page](https://github.com/acash11/Web-Programming-Basic-Quote-CRUD/assets/150085335/ddf8be5c-9f39-404a-bc9b-5c2ffa4c7333)
 
 The add quote page: 
 ![add_quote_page](https://github.com/acash11/Web-Programming-Basic-Quote-CRUD/assets/150085335/af7142f4-2f57-4be7-aa25-58662889e395)
