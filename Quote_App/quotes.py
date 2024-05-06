@@ -3,6 +3,7 @@ from mongita import MongitaClientDisk
 from bson import ObjectId
 from passwords import hash_password #password
 from passwords import check_password #password
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -17,16 +18,16 @@ user_db = client.user_db
 import uuid
 
 #Clears all entries. In a real application, this would obviously not exist
-#@app.route("/d", methods=["GET"])
-#def delete_collections():
-#    session_collection = session_db.session_collection
-#    session_collection.delete_many({})
-#    user_collection = user_db.user_collection
-#    user_collection.delete_many({})
-#    quotes_collection = quotes_db.quotes_collection
-#    quotes_collection.delete_many({})
-#
-#    return redirect("/login")
+@app.route("/d", methods=["GET"])
+def delete_collections():
+    session_collection = session_db.session_collection
+    session_collection.delete_many({})
+    user_collection = user_db.user_collection
+    user_collection.delete_many({})
+    quotes_collection = quotes_db.quotes_collection
+    quotes_collection.delete_many({})
+
+    return redirect("/login")
 
 
 @app.route("/", methods=["GET"])
@@ -54,17 +55,18 @@ def get_quotes():
 
     ###
     public_data = list(quotes_collection.find({"view":"Public"}))
+    print(public_data)
     ###
 
 
     for item in data:
         item["_id"] = str(item["_id"])
-        item["object"] = ObjectId(item["_id"])
+        #item["object"] = ObjectId(item["_id"])
 
     ###
     for item in public_data:
         item["_id"] = str(item["_id"])
-        item["object"] = ObjectId(item["_id"])
+        #item["object"] = ObjectId(item["_id"])
     ###
 
     # display the data
@@ -200,11 +202,12 @@ def post_add():
     text = request.form.get("text", "")
     author = request.form.get("author", "")
     view = request.form.get("view", "")
+    date = datetime.now().strftime("%x")
     if text != "" and author != "":
         # open the quotes collection
         quotes_collection = quotes_db.quotes_collection
         # insert the quote
-        quote_data = {"owner": user, "text": text, "author": author, "view": view}
+        quote_data = {"owner": user, "text": text, "author": author, "view": view, "date": date}
         quotes_collection.insert_one(quote_data)
     # usually do a redirect('....')
     return redirect("/quotes")
@@ -287,6 +290,47 @@ def post_edit():
         data = quotes_collection.update_one({"_id": ObjectId(_id)}, values)
     # do a redirect('....')
     return redirect("/quotes")
+
+# @app.route("/comment", methods=["POST"])
+# def post_comment():
+#     session_id = request.cookies.get("session_id", None)
+#     if not session_id:
+#         response = redirect("/login")
+#         return response
+#     _id = request.form.get("_id", None)
+#     text = request.form.get("comment", "")
+#     author = request.form.get("author", "")
+#     if _id:
+#         #Check if user owns this quote!
+#         #From the session_id, get the user
+#         session_collection = session_db.session_collection
+#         #From the quote_id, get the author
+#         #Compare the two
+#         session_data = list(session_collection.find({"session_id": session_id}))
+#         if len(session_data) == 0:
+#             response = redirect("/logout")
+#             return response
+#         assert len(session_data) == 1
+#         session_data = session_data[0]
+#         check_user1 = session_data.get("user", "")
+
+
+#         # open the quotes collection
+#         quotes_collection = quotes_db.quotes_collection
+#         # get the item
+#         data = quotes_collection.find_one({"_id": ObjectId(_id)})
+
+#         check_user2 = data.get("owner", "")
+
+#         if not check_user1 == check_user2:
+#             return "<h1>Wait a minute! You don't own this quote!</h1>"
+        
+
+#         # update the values in this particular record
+#         values = {"$set": {"text": text, "author": author}}
+#         data = quotes_collection.update_one({"_id": ObjectId(_id)}, values)
+#     # do a redirect('....')
+#     return redirect("/quotes")
 
 
 @app.route("/delete", methods=["GET"])
