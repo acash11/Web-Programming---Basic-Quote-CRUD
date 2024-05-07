@@ -18,16 +18,16 @@ user_db = client.user_db
 import uuid
 
 #Clears all entries. In a real application, this would obviously not exist
-@app.route("/d", methods=["GET"])
-def delete_collections():
-    session_collection = session_db.session_collection
-    session_collection.delete_many({})
-    user_collection = user_db.user_collection
-    user_collection.delete_many({})
-    quotes_collection = quotes_db.quotes_collection
-    quotes_collection.delete_many({})
+# @app.route("/d", methods=["GET"])
+# def delete_collections():
+#     session_collection = session_db.session_collection
+#     session_collection.delete_many({})
+#     user_collection = user_db.user_collection
+#     user_collection.delete_many({})
+#     quotes_collection = quotes_db.quotes_collection
+#     quotes_collection.delete_many({})
 
-    return redirect("/login")
+#     return redirect("/login")
 
 
 @app.route("/", methods=["GET"])
@@ -203,11 +203,14 @@ def post_add():
     author = request.form.get("author", "")
     view = request.form.get("view", "")
     date = datetime.now().strftime("%x")
+    comments_allowed = request.form.get("comments", "")
+    if not comments_allowed: comments_allowed = "no"
+
     if text != "" and author != "":
         # open the quotes collection
         quotes_collection = quotes_db.quotes_collection
         # insert the quote
-        quote_data = {"owner": user, "text": text, "author": author, "view": view, "date": date}
+        quote_data = {"owner": user, "text": text, "author": author, "view": view, "date": date, "comments_allowed": comments_allowed, "comments": []}
         quotes_collection.insert_one(quote_data)
     # usually do a redirect('....')
     return redirect("/quotes")
@@ -283,7 +286,6 @@ def post_edit():
 
         if not check_user1 == check_user2:
             return "<h1>Wait a minute! You don't own this quote!</h1>"
-        
 
         # update the values in this particular record
         values = {"$set": {"text": text, "author": author, "view": view}}
@@ -291,47 +293,98 @@ def post_edit():
     # do a redirect('....')
     return redirect("/quotes")
 
-# @app.route("/comment", methods=["POST"])
-# def post_comment():
-#     session_id = request.cookies.get("session_id", None)
-#     if not session_id:
-#         response = redirect("/login")
-#         return response
-#     _id = request.form.get("_id", None)
-#     text = request.form.get("comment", "")
-#     author = request.form.get("author", "")
-#     if _id:
-#         #Check if user owns this quote!
-#         #From the session_id, get the user
-#         session_collection = session_db.session_collection
-#         #From the quote_id, get the author
-#         #Compare the two
-#         session_data = list(session_collection.find({"session_id": session_id}))
-#         if len(session_data) == 0:
-#             response = redirect("/logout")
-#             return response
-#         assert len(session_data) == 1
-#         session_data = session_data[0]
-#         check_user1 = session_data.get("user", "")
+@app.route("/comment/<id>", methods=["POST"])
+def post_comment(id=None):
+    session_id = request.cookies.get("session_id", None)
+    if not session_id:
+        response = redirect("/login")
+        return response
 
+    # open the session collection
+    session_collection = session_db.session_collection
+    # get the data for this session
+    session_data = list(session_collection.find({"session_id": session_id}))
+    if len(session_data) == 0:
+        response = redirect("/logout")
+        return response
+    assert len(session_data) == 1
+    session_data = session_data[0]
+    # get some information from the session
+    user = session_data.get("user", "unknown user")
 
-#         # open the quotes collection
-#         quotes_collection = quotes_db.quotes_collection
-#         # get the item
-#         data = quotes_collection.find_one({"_id": ObjectId(_id)})
+    #Get text from the form
+    text = request.form.get("comment", "")
 
-#         check_user2 = data.get("owner", "")
+    #Open quotes collection and find the quote with the mathcing id to the route
+    quotes_collection = quotes_db.quotes_collection
+    data = quotes_collection.find_one({"_id": ObjectId(id)})
 
-#         if not check_user1 == check_user2:
-#             return "<h1>Wait a minute! You don't own this quote!</h1>"
+    if(data["comments_allowed"] == "no"):
+        return "<h1>Comments not allowed!</h1>"
+
+    #Get all of the existing comments on the post, then append the new comment
+    comments_on_post = data["comments"]
+    comments_on_post.append({'id': str(uuid.uuid4()), 'user': user, 'comment': text})
+
+    #Set the update and send it to mongita
+    update = {"$set": {"comments": comments_on_post}}
+    quotes_collection.update_one({"_id": ObjectId(id)}, update)
+    
+    return redirect("/quotes")
+
+#In Progress
+#Check if user owns the original quote or the comment for delete permission
+@app.route("/deletecomment/<id>/<comment_id>", methods=["GET"])
+def get_deletecomment(id=None, comment_id=None):
+    session_id = request.cookies.get("session_id", None)
+    if not session_id:
+        response = redirect("/login")
+        return response
+    
+    #Make sure a quote and comment were input
+    if id and comment_id:
+        #Check if user owns this quote!
+        #From the session_id, get the user
+        session_collection = session_db.session_collection
+        #From the quote_id, get the author
+        #Compare the two
+        session_data = list(session_collection.find({"session_id": session_id}))
+        if len(session_data) == 0:
+            response = redirect("/logout")
+            return response
+        assert len(session_data) == 1
+        session_data = session_data[0]
+
+        #check_user1: user info from session
+        check_user1 = session_data.get("user", "")   
+
+        # open the quotes collection
+        quotes_collection = quotes_db.quotes_collection
+        # get the item
+        data = quotes_collection.find_one({"_id": ObjectId(id)})
+
+        #check_user2: user info from database
+        check_user2 = data.get("owner", "")
         
+        #Get a list of dictionaries reflecting all comments on a quote
+        comments_on_post = data["comments"]
 
-#         # update the values in this particular record
-#         values = {"$set": {"text": text, "author": author}}
-#         data = quotes_collection.update_one({"_id": ObjectId(_id)}, values)
-#     # do a redirect('....')
-#     return redirect("/quotes")
+        #check_commenter: gets the user that commented
+        check_commenter = [x for x in comments_on_post if x['id'] == comment_id]
 
+        #If user is not the owner of the quote AND user is not the commenter: Should not be allowed to delete.
+        if not check_commenter[0]['user'] == check_user1 and not check_user1 == check_user2:
+            return "<h1>Wait a minute! You don't own this!</h1>"
+
+        #Create an updated comment list excluding the comment to be deleted
+        updated_comment_list = [x for x in comments_on_post if x['id'] != comment_id]
+        update = {"$set": {"comments": updated_comment_list}}
+
+        #Update the entry in the database to reflect updated list
+        quotes_collection.update_one({"_id": ObjectId(id)}, update)
+
+    # return to the quotes page
+    return redirect("/quotes")
 
 @app.route("/delete", methods=["GET"])
 @app.route("/delete/<id>", methods=["GET"])
